@@ -1,5 +1,5 @@
 // ==========================================
-// Service Worker — MiCatálogoX PWA
+// Service Worker — MICHaquetas
 // ==========================================
 
 const CACHE_NAME = 'michaquetas-cache-v1.0';
