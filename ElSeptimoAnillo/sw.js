@@ -1,9 +1,9 @@
 // ==========================================
-// Service Worker — MICHaquetas
+// Service Worker — El Séptimo Anillo
 // ==========================================
 
-const CACHE_NAME = 'michaquetas-cache-v1.0';
-const API_CACHE = 'micatalogox-api-cache-v1.0';
+const CACHE_NAME = 'elseptimoanillo-cache-v1.0';
+const API_CACHE = 'elseptimoanillo-api-cache-v1.0';
 
 // Recursos estáticos que se cachean en instalación (Cache First)
 const STATIC_ASSETS = [
