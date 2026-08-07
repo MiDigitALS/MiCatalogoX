@@ -2,8 +2,8 @@
 // Service Worker — El Séptimo Anillo
 // ==========================================
 
-const CACHE_NAME = 'elseptimoanillo-cache-v1.0';
-const API_CACHE = 'elseptimoanillo-api-cache-v1.0';
+const CACHE_NAME = 'elseptimoanillo-cache-v1.01';
+const API_CACHE = 'elseptimoanillo-api-cache-v1.01';
 
 // Recursos estáticos que se cachean en instalación (Cache First)
 const STATIC_ASSETS = [
