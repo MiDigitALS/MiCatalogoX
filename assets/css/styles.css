@@ -1090,6 +1090,7 @@ input:checked+.slider:before {
 }
 
 footer {
+    background: var(--bg-panel);
     text-align: center;
     padding: 24px;
     font-size: 12px;
