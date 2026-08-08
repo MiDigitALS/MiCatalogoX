@@ -1,7 +1,7 @@
 {
     "name": "MICHaquetas",
     "short_name": "MICHaquetas",
-    "start_url": "./",
+    "start_url": "./index.html?shop=michaquetas",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2B2D42",
