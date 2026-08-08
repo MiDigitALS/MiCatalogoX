@@ -2,8 +2,8 @@
 // Service Worker — MICHaquetas
 // ==========================================
 
-const CACHE_NAME = 'michaquetas-cache-v1.03';
-const API_CACHE = 'michaquetas-api-cache-v1.03';
+const CACHE_NAME = 'michaquetas-cache-v1.04';
+const API_CACHE = 'michaquetas-api-cache-v1.04';
 
 // Recursos estáticos que se cachean en instalación (Cache First)
 const STATIC_ASSETS = [
