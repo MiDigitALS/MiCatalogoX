@@ -1,7 +1,7 @@
 {
     "name": "El Séptimo Anillo",
     "short_name": "ElSeptimoAnillo",
-    "start_url": "./",
+    "start_url": "./index.html?shop=anillo7",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2B2D42",
