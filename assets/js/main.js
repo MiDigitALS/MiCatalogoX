@@ -846,6 +846,17 @@ async function executeDeleteLogo() {
     }
 }
 
+// Función para ejecutar la acción de la Publicidad Global
+function ejecutarPromoAccion() {
+    if (PROMO_LINK && PROMO_LINK.trim() !== "") {
+        // Abre el link configurado en Google Sheets en una nueva pestaña
+        window.open(PROMO_LINK, '_blank');
+    } else {
+        // Si por error no hay link en el GSheets, solo cierra el modal
+        document.getElementById('promoModal').classList.remove('show');
+    }
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
