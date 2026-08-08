@@ -22,14 +22,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// 2. MULTI-EMPRENDEDOR: leer ?shop= de la URL y guardarlo
+// 2. MULTI-EMPRENDEDOR AISLADO: Crear una memoria única basada en la carpeta
+const currentFolder = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+const storageKey = 'tienda_guardada_' + currentFolder;
+
 const _urlParams = new URLSearchParams(window.location.search);
 let SHOP_ID = _urlParams.get('shop');
 
 if (SHOP_ID) {
-    localStorage.setItem('tienda_guardada', SHOP_ID);
+    localStorage.setItem(storageKey, SHOP_ID);
 } else {
-    SHOP_ID = localStorage.getItem('tienda_guardada');
+    SHOP_ID = localStorage.getItem(storageKey);
 }
 
 window.LINK_CLIENTES = window.location.href.split('?')[0] + (SHOP_ID ? `?shop=${SHOP_ID}` : '');
