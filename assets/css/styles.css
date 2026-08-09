@@ -6,31 +6,31 @@
     --bg-panel: rgba(255, 255, 255, 0.95);
     --bg-light: #F1F5F9;        /* Reemplaza #f1f5f9 (botones secundarios y elementos neutros) */
     --bg-hover: #F8FAFc;        /* Reemplaza #f8fafc (fondos de inputs e imágenes) */
-    
+
     /* Colores Principales y sus equivalentes RGB para opacidades */
     --primary: #1F3A5A;         
     --primary-rgb: 31, 58, 90;  /* Para sombras basadas en el color primario */
-    
+
     --accent: #E98C30;          
     --accent-rgb: 233, 140, 48; /* Para sombras y efectos de realce */
     --accent-light: #FDF3E9;    
-    
+
     --promo-color: #56A9C5;    
     --promo-light: #E2F3F8;     /* Reemplaza #E2F3F8 (degradados del icono) */
-    
+
     /* Tipografía y Textos */
     --text-dark: #122133;       
     --text-dark-rgb: 18, 33, 51;/* Para fondos oscuros translúcidos (modales) */
     --text-muted: #7E93A8;      
-    
+
     /* Bordes, Estados y Alertas */
     --border-color: #E2E8F0;
     --danger: #ef4444;
     --danger-light: #fee2e2;    /* Reemplaza #fee2e2 */
     --success: #10b981;
-    
+
     --font-main: 'Outfit', sans-serif;
-    --radius: 20px;
+    --radius: 0.5rem;
 }
 
 * {
@@ -282,8 +282,8 @@ header {
 .product-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 20px;
+    gap: 0.5rem;
+    padding: 10px;
 }
 
 .card {
@@ -339,7 +339,7 @@ header {
     aspect-ratio: 1 / 1;
     height: auto;
     object-fit: cover;
-    border-radius: 14px;
+    border-radius: var(--radius);
     margin-bottom: 12px;
     background-color: var(--bg-hover);
 }
@@ -467,7 +467,7 @@ body.modo-admin .price {
     letter-spacing: 0.5px;
     width: 100%;
     aspect-ratio: 1 / 1;
-    border-radius: 14px;
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -634,8 +634,8 @@ body.modo-admin .price {
     width: 100%;
     height: 100%;
     max-height: 90dvh;
-    border-top-left-radius: 28px;
-    border-top-right-radius: 28px;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
     padding: 24px 20px;
     transform: translateY(100%);
     transition: transform 0.3s ease;
@@ -663,7 +663,7 @@ body.modo-admin .price {
     top: 18px;
     right: 20px;
     background: var(--bg-light);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--primary);
     border-radius: 50%;
     width: 36px;
     height: 36px;
@@ -771,7 +771,7 @@ body.modo-admin .price {
     padding: 14px;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: var(--radius);
     font-family: var(--font-main);
     font-size: 14px;
     outline: none;
@@ -792,9 +792,10 @@ body.modo-admin .price {
     align-items: center;
     background-color: var(--bg-card);
     padding: 8px;
-    border-radius: 14px;
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
     margin-bottom: 10px;
+    gap: 1rem;
 }
 
 .ticket-name {
@@ -1029,7 +1030,7 @@ input:checked+.slider:before {
 .qr-container img {
     width: 180px;
     height: 180px;
-    border-radius: 16px;
+    border-radius: var(--radius);
     padding: 10px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -1041,7 +1042,7 @@ input:checked+.slider:before {
     width: 100%;
     padding: 14px;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius);
     text-align: center;
     font-family: var(--font-main);
     font-size: 20px;
