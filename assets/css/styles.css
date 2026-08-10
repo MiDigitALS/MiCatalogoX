@@ -350,6 +350,7 @@ header {
     line-height: 1.2;
     margin-bottom: 6px;
     color: var(--primary);
+    white-space: pre-line; /* <--- Agrega esto */
 }
 
 .card-desc {
@@ -650,7 +651,7 @@ body.modo-admin .price {
     min-height: 0;
     overflow-y: auto;
     padding-right: 5px;
-    padding-bottom: 150px;
+    padding-bottom: 20px; /* <--- Cambiar de 150px a 20px */
     margin-top: 10px;
 }
 
@@ -728,6 +729,7 @@ body.modo-admin .price {
     margin-bottom: 6px;
     color: var(--primary);
     line-height: 1.2;
+    white-space: pre-line; /* <--- Agrega esto */
 }
 
 .detail-price {
@@ -803,6 +805,7 @@ body.modo-admin .price {
     font-size: 14px;
     margin-bottom: 4px;
     color: var(--primary);
+    white-space: pre-line; /* <--- Agrega esto */
 }
 
 .ticket-unit-price {
@@ -897,7 +900,7 @@ body.modo-admin .price {
 .admin-input-group {
     background: var(--bg-hover);
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: 0.5rem;
     padding: 10px 14px;
     display: flex;
     flex-direction: column;
@@ -1159,7 +1162,7 @@ footer {
 .btn-add-cat { border-radius: 12px; height: 40px; width: 45px; flex-shrink: 0; font-size: 32px; font-weight: 400; line-height: 1; padding-bottom: 2px; }
 
 .cat-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
-.cat-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-light); padding: 10px 15px; border-radius: 14px; }
+.cat-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-light); padding: 10px 15px; border-radius: 0.5rem; }
 .cat-list-name { font-weight: 600; color: var(--primary); }
 .cat-list-actions { display: flex; gap: 10px; }
 .btn-text-edit { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; font-size: 12px; }
