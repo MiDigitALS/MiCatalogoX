@@ -731,6 +731,38 @@ function ejecutarPromoAccion() {
     }
 }
 
+// === MÓDULO DE ESTADÍSTICAS SILENCIOSAS ===
+
+// Función para enviar el dato a Google Sheets sin interrumpir al usuario
+function registrarEstadistica(evento) {
+    if (!SHOP_ID) return; // Si no hay tienda, no registramos
+    const datosStats = { action: "analytics", shop: SHOP_ID, evento: evento };
+    fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify(datosStats), 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).catch(e => console.log("Stats error ignorado"));
+}
+
+// 1. Rastrear Instalaciones (Cuando el usuario le da a "Instalar App")
+window.addEventListener('appinstalled', (evt) => {
+    registrarEstadistica("APP INSTALADA");
+});
+
+// 2. Rastrear Uso (Detectar si entró desde la App instalada o desde el link web)
+window.addEventListener('DOMContentLoaded', () => {
+    // Retrasamos 3 segundos el registro para asegurar que la página haya cargado
+    setTimeout(() => {
+        // Verifica si la pantalla se está mostrando como "Standalone" (es decir, como App nativa)
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            registrarEstadistica("VISITA DESDE LA APP");
+        } else {
+            // Si quieres también registrar las visitas desde el navegador web, descomenta la línea de abajo:
+            // registrarEstadistica("VISITA DESDE LA WEB");
+        }
+    }, 3000);
+});
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
