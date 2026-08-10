@@ -219,8 +219,7 @@ async function loadProducts() {
         updateCartBar();
 
         // === DISPARADOR DEL TUTORIAL DEL EMPRENDEDOR ===
-        //if (IS_ADMIN && !localStorage.getItem('tutorial_admin_visto_' + currentFolder)) {
-        if (IS_ADMIN) {
+        if (IS_ADMIN && !localStorage.getItem('tutorial_admin_visto_' + currentFolder)) {
             mostrarTutorialAdmin();
         }
 
