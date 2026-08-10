@@ -107,6 +107,19 @@ async function loadProducts() {
         const response = await fetch(url);
         const data = await response.json();
 
+        // Si el catálogo está desactivado en Sheets, mostramos la pantalla de mantenimiento
+        if (data.status === "inactive") {
+            document.body.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background-color: #F4F7F9; font-family: 'Outfit', sans-serif; color: #122133;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🚧</div>
+                    <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 10px; color: #1F3A5A;">Catálogo en Mantenimiento</h2>
+                    <p style="font-size: 14px; color: #7E93A8; max-width: 300px; line-height: 1.5; margin-bottom: 30px;">Este catálogo se encuentra temporalmente fuera de servicio por mantenimiento o actualización de inventario. ¡Vuelve pronto!</p>
+                    <button onclick="location.reload()" style="background-color: #E98C30; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: transform 0.2s;">Reintentar</button>
+                </div>
+            `;
+            return;
+        }
+
         MONEDA = data.moneda || "$";
         WHATSAPP_EMPRENDEDOR = data.whatsapp ? data.whatsapp.toString().replace(/[^0-9]/g, '') : "";
         
