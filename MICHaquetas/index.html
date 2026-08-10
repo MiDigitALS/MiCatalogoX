@@ -28,7 +28,7 @@
             <div class="brand-info" style="display: flex; align-items: center; gap: 12px;">
                 <!-- Imagen del logo (Oculta por defecto hasta que cargue) -->
                 <img id="headerLogo" src="" alt="Logo" style="display: none; height: 42px; width: 42px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-color);">
-                
+
                 <div style="flex: 1; min-width: 0;">
                     <h1 id="headerTitle">MiCatálogoX</h1>
                     <p id="headerSubtitle">Cargando...</p>
@@ -157,7 +157,7 @@
 
                     <div class="admin-input-group">
                         <label>Nombre del producto</label>
-                        <input type="text" id="prodName" class="admin-field" placeholder="Nombre del producto..." required>
+                        <textarea id="prodName" class="admin-field textarea-auto" rows="1" placeholder="Nombre del producto..." required></textarea>
                     </div>
 
                     <div class="admin-row">
@@ -180,11 +180,13 @@
                         <label class="check-group-label">VISIBLE EN CATÁLOGO</label>
                         <label class="switch"><input type="checkbox" id="prodActivo" checked><span class="slider"></span></label>
                     </div>
+
+                    <!-- Botones integrados al final del formulario -->
+                    <div class="form-btn-row" style="margin-top: 30px; padding-bottom: 0; margin-bottom: 0;">
+                        <button type="button" id="btnEliminar" class="btn-delete flex-1" onclick="document.getElementById('deleteModal').classList.add('show')">Borrar</button>
+                        <button type="submit" id="btnGuardar" class="btn-submit flex-1">Guardar</button>
+                    </div>
                 </form>
-            </div>
-            <div class="form-btn-row">
-                <button type="button" id="btnEliminar" class="btn-delete flex-1" onclick="document.getElementById('deleteModal').classList.add('show')">Borrar</button>
-                <button type="submit" form="productForm" id="btnGuardar" class="btn-submit flex-1">Guardar</button>
             </div>
         </div>
     </div>
@@ -349,7 +351,7 @@
     <footer>Catálogo Web creado por <span onclick="document.getElementById('promoModal').classList.add('show')" class="footer-link"><span class="font-bold">Mi</span>Digit<span class="font-bold text-promo">ALS</span></span> | © 2026</footer>
 
     <!-- === LÓGICA MAESTRA === -->
-    <script src="../assets/js/main.js?v=1.02"></script>
+    <script src="../assets/js/main.js?v=1.04"></script>
 </body>
 
 </html>
