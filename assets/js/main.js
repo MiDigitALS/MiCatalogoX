@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // 2. MULTI-EMPRENDEDOR AISLADO: Crear una memoria única basada en la carpeta
-const currentFolder = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+const currentFolder = window.location.pathname.split('/').filter(Boolean)[0] || 'root';
 const storageKey = 'tienda_guardada_' + currentFolder;
 
 const _urlParams = new URLSearchParams(window.location.search);
