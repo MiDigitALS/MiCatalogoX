@@ -214,6 +214,16 @@ async function loadProducts() {
         renderProducts();
         updateCartBar();
 
+        renderCategoriesUI();
+        renderProducts();
+        updateCartBar();
+
+        // === DISPARADOR DEL TUTORIAL DEL EMPRENDEDOR ===
+        //if (IS_ADMIN && !localStorage.getItem('tutorial_admin_visto_' + currentFolder)) {
+        if (IS_ADMIN) {
+            mostrarTutorialAdmin();
+        }
+
     } catch (error) {
         console.error("Error cargando productos:", error);
         document.getElementById('productGrid').innerHTML = `<div class="empty-state">Error de conexión.</div>`;
@@ -775,6 +785,134 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 });
+
+// === FUNCIÓN DE BIENVENIDA Y TUTORIAL DEL ADMINISTRADOR ===
+function mostrarTutorialAdmin() {
+    // Configura aquí tus diapositivas (puedes subir las capturas de pantalla a tu carpeta de Google Drive y pegar sus links aquí)
+    const slides = [
+        {
+            img: "https://lh3.googleusercontent.com/d/1R_PVRSGCsx4jhgBNOqwEkBDzHKa0uR1w", 
+            title: "¡Bienvenido a tu Panel secreto!",
+            desc: "Éste es tu centro de control, y sólo tú lo verás. Desde aquí podrás agregar, modificar, ocultar o eliminar tus productos."
+        },  
+        {
+            img: "https://lh3.googleusercontent.com/d/12bwwY89pTMViims0F0akCLup3mnFeD4E", 
+            title: "Agregar un nuevo producto",
+            desc: "Toca el botón flotante + abajo a la derecha. <br>Se abrirá una ficha."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1GVHcLfcfOKlU2_gUKEFErDzuStQuRP0o", 
+            title: "Registra tu producto",
+            desc: "En esta ficha subes una imagen de la galería, completa el formulario y toca en GUARDAR NUEVO."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1FcwxdoOA1ZBN7bmqmbCe_ImlZdF2rf5N", 
+            title: "Modificar un producto",
+            desc: "Si quieres cambiar el precio o la descripción de un producto, simplemente tócalo en tu panel administrativo."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1T2neUix4Ut2nkTLJTXjGVFX5cYjxnZjy", 
+            title: "Ocultar, borrar o actualizar",
+            desc: "Si sólo deseas ocultar, desactiva VISIBLE EN CATÁLOGO y actualiza. El producto quedará guardado para ti, pero tus clientes ya no lo verán."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1UEPe7EEPoclL2zRwEk8yQ75YB1R5vI-Z", 
+            title: "Ajustes del catálogo",
+            desc: "En tu panel administrativo, toca el botón flotante ⚙️ (Ajustes) abajo a la derecha."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/19GWICUHMjguQ5RNH5mWuYes-tecWfN90", 
+            title: "Gestionar categorías",
+            desc: "En esta ficha puedes gestionar diferentes ajustes para adaptar tu catálogo a tus requerimientos."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1x92jrfLmSTMGzKM_oYcRudb4ModJbCiR", 
+            title: "El catálogo de tus clientes",
+            desc: "El proceso de compra es sumamente intuitivo para tus clientes."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1ZExOyLhYm_OUZVndryfKhZdercZZwbUD", 
+            title: "Total de la compra",
+            desc: "Según las cantidades de los productos que eligen, se totaliza en la barra del carrito de compras."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1ubk_OTKoCEfCFQXySVyaQOCZ46ecmcTd", 
+            title: "Momento del pedido",
+            desc: "El cliente escribe su nombre y el pedido llega directo a tu WhasApp. Tú coordinas el pedido sin intermedarios ni comisiones."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/16gCRjxPWQ2BbeI8-6eilk1hmi_dIko7l", 
+            title: "Compartir tu catálogo",
+            desc: "Tú y tus clientes pueden compartir el modo no editable de tu catálgo."
+        },
+        {
+            img: "https://lh3.googleusercontent.com/d/1u3uDgN5vbNUvlO4mDpfBbbTn13-G6nJm", 
+            title: "Código QR y WhatsApp",
+            desc: "Que escaneen el QR o envía un link para el acceso inmediato a tu Catálogo Digital."
+        }
+    ];
+
+    let currentSlide = 0;
+
+    // Crear el fondo del modal (Overlay)
+    const overlay = document.createElement('div');
+    overlay.id = 'tutorialOverlay';
+    overlay.style = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(18, 33, 51, 0.9); backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px); z-index: 2000; 
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Outfit', sans-serif; padding: 20px; box-sizing: border-box;
+    `;
+
+    // Crear la caja del contenido (Card)
+    const content = document.createElement('div');
+    content.style = `
+        background: white; width: 100%; max-width: 380px;
+        border-radius: 1rem; padding: 24px; text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex;
+        flex-direction: column; align-items: center; position: relative;
+        box-sizing: border-box;
+    `;
+
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // Función para renderizar cada diapositiva en pantalla
+    function renderSlide() {
+        const slide = slides[currentSlide];
+        content.innerHTML = `
+            <button id="closeTutorialBtn" style="position: absolute; top: 15px; right: 15px; background: #F1F5F9; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 14px; font-weight: bold; color: #1F3A5A; display: flex; align-items: center; justify-content: center;">✕</button>
+            <img src="${slide.img}" style="width: 100%; height: auto; object-fit: contain; border-radius: 14px; margin-bottom: 20px; background: #F8FAFC; padding: 10px; box-sizing: border-box;" alt="Tutorial">
+            <h3 style="font-size: 18px; font-weight: 700; color: #1F3A5A; margin-bottom: 8px;">${slide.title}</h3>
+            <p style="font-size: 13px; color: #7E93A8; line-height: 1.5; margin-bottom: 24px; min-height: 60px;">${slide.desc}</p>
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 15px;">
+                <span style="font-size: 11px; font-weight: 700; color: #7E93A8; text-transform: uppercase; letter-spacing: 0.5px;">Paso ${currentSlide + 1} de ${slides.length}</span>
+                <button id="nextTutorialBtn" style="background: #E98C30; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; transition: transform 0.2s;">
+                    ${currentSlide === slides.length - 1 ? 'Empezar' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+
+        // Eventos de los botones
+        document.getElementById('closeTutorialBtn').onclick = finalizarTutorial;
+        document.getElementById('nextTutorialBtn').onclick = () => {
+            if (currentSlide === slides.length - 1) {
+                finalizarTutorial();
+            } else {
+                currentSlide++;
+                renderSlide();
+            }
+        };
+    }
+
+    function finalizarTutorial() {
+        localStorage.setItem('tutorial_admin_visto_' + currentFolder, 'true');
+        overlay.remove();
+    }
+
+    renderSlide();
+}
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
