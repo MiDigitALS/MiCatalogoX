@@ -13,13 +13,14 @@ if ('serviceWorker' in navigator) {
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx27ehEycCOiHqyYOmPHNYQ7w_ZYluYA8wkdI2G_4PuzHqciyXYuftYqCUmuncpYaeRcQ/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
-    const prodDescTx = document.getElementById('prodDesc');
-    if (prodDescTx) {
-        prodDescTx.addEventListener('input', function () {
+    // Hace que cualquier textarea con la clase textarea-auto ajuste su altura
+    const autoResizeTextareas = document.querySelectorAll('.textarea-auto');
+    autoResizeTextareas.forEach(tx => {
+        tx.addEventListener('input', function() {
             this.style.height = "auto";
             this.style.height = this.scrollHeight + "px";
         });
-    }
+    });
 });
 
 // 2. MULTI-EMPRENDEDOR AISLADO: Crear una memoria única basada en la carpeta
@@ -39,8 +40,7 @@ window.LINK_CLIENTES = window.location.href.split('?')[0] + (SHOP_ID ? `?shop=${
 
 let WHATSAPP_EMPRENDEDOR = "";
 let MONEDA = "$";
-let IMGBB_KEY = "";
-let SUBTITULO_TIENDA = "Tienda online"; // Nueva variable global para recordar el subtítulo real
+let SUBTITULO_TIENDA = "Mi Catálogo Digital"; // Nueva variable global para recordar el subtítulo real
 
 let PROMO_ACTIVO = false;
 let PROMO_CARD_TITULO = "";
@@ -109,12 +109,11 @@ async function loadProducts() {
 
         MONEDA = data.moneda || "$";
         WHATSAPP_EMPRENDEDOR = data.whatsapp ? data.whatsapp.toString().replace(/[^0-9]/g, '') : "";
-        IMGBB_KEY = data.imgbb_key || data.imgbb || "";
-
+        
         // --- 1. PERSONALIZACIÓN DE MARCA Y TEXTOS ---
         const mainTitle = data.nombre_tienda || "MiCatálogoX";
-        SUBTITULO_TIENDA = data.subtitulo_tienda || "Tienda online"; // Guardamos el subtítulo real aquí
-        
+        SUBTITULO_TIENDA = data.subtitulo_tienda || "Mi Catálogo Digi"; // Guardamos el subtítulo real aquí
+
         const titleEl = document.getElementById('headerTitle');
         const subtitleEl = document.getElementById('headerSubtitle');
 
@@ -285,12 +284,14 @@ function renderProducts() {
             grid.innerHTML = `<div class="empty-state">No hay productos.</div>`;
         } else {
             let mensajeVacio = "";
+            let mostrarPromo = true; // Por defecto mostramos la promo
             if (products.filter(p => p.available).length === 0) {
                 mensajeVacio = `<div class="empty-state large"><div class="empty-icon">🛍️</div><h3 class="empty-title">Catálogo en preparación</h3><p class="empty-desc">Aún no hemos publicado nuestros productos. ¡Vuelve muy pronto!</p></div>`;
+                mostrarPromo = false; // Si no hay NINGÚN producto en la tienda, ocultamos la promo
             } else {
                 mensajeVacio = `<div class="empty-state large"><div class="empty-icon small">🔍</div><h3 class="empty-title">Sin resultados</h3><p class="empty-desc">No encontramos ningún modelo con esa descripción.</p></div>`;
             }
-            grid.innerHTML = mensajeVacio + tarjetaPublicidad;
+            grid.innerHTML = mensajeVacio + (mostrarPromo ? tarjetaPublicidad : "");
         }
         return;
     }
@@ -360,7 +361,7 @@ function processImageToBase64(file) {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, startX, startY, size, size, 0, 0, 400, 400);
-            
+
             // En vez de Blob, devolvemos Base64 directamente
             resolve(canvas.toDataURL('image/webp', 0.80));
         };
@@ -427,7 +428,9 @@ function openFormModal(id) {
     document.getElementById('btnEliminar').style.display = 'none';
 
     const prodDescTx = document.getElementById('prodDesc');
+    const prodNameTx = document.getElementById('prodName');
     if (prodDescTx) prodDescTx.style.height = "auto";
+    if (prodNameTx) prodNameTx.style.height = "auto";
 
     const btnGuardar = document.getElementById('btnGuardar');
     btnGuardar.innerText = "Guardar Nuevo";
@@ -445,9 +448,13 @@ function openFormModal(id) {
         btnGuardar.innerText = "Actualizar";
 
         if (prodDescTx) {
-            prodDescTx.style.height = "auto";
-            prodDescTx.style.height = prodDescTx.scrollHeight + "px";
-        }
+        prodDescTx.style.height = "auto";
+        prodDescTx.style.height = prodDescTx.scrollHeight + "px";
+    }
+    if (prodNameTx) {
+        prodNameTx.style.height = "auto";
+        prodNameTx.style.height = prodNameTx.scrollHeight + "px";
+    }
     } else {
         document.getElementById('editId').value = "";
         document.getElementById('oldImgUrl').value = "";
@@ -503,9 +510,9 @@ if (productForm) {
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                 redirect: "follow" 
             });
-            
+
             const resData = await response.json();
-            
+
             if (resData.status === "error") {
                 showAlert("Error de Drive", resData.msg);
             } else {
