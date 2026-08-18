@@ -1,32 +1,34 @@
 /* === VARIABLES Y DISEÑO GLOBAL === */
 :root {
-    /* Colores de Fondo y Estructura */
+    /* Colores de Fondo y Estructura (Controlados por Sheets o manual) */
     --bg-body: #F4F7F9;         
     --bg-card: #FFFFFF;
     --bg-panel: rgba(255, 255, 255, 0.95);
-    --bg-light: #F1F5F9;        /* Reemplaza #f1f5f9 (botones secundarios y elementos neutros) */
-    --bg-hover: #F8FAFc;        /* Reemplaza #f8fafc (fondos de inputs e imágenes) */
 
-    /* Colores Principales y sus equivalentes RGB para opacidades */
+    /* 🧠 TINTADO AUTOMÁTICO (Se calculan solos según el primario y acento) */
+    --bg-light: rgba(var(--primary-rgb), 0.06);     /* Botones neutros tintados */
+    --bg-hover: rgba(var(--primary-rgb), 0.02);     /* Hover de inputs tintados */
+    --border-color: rgba(var(--primary-rgb), 0.1);  /* Bordes sutiles tintados */
+    --accent-light: rgba(var(--accent-rgb), 0.08);  /* Tarjeta seleccionada tintada */
+
+    /* Colores Principales (Inyectados por el JS) */
     --primary: #1F3A5A;         
-    --primary-rgb: 31, 58, 90;  /* Para sombras basadas en el color primario */
-
+    --primary-rgb: 31, 58, 90;  
     --accent: #E98C30;          
-    --accent-rgb: 233, 140, 48; /* Para sombras y efectos de realce */
-    --accent-light: #FDF3E9;    
+    --accent-rgb: 233, 140, 48; 
 
+    /* Colores de Publicidad */
     --promo-color: #56A9C5;    
-    --promo-light: #D0ECF4;     /* Reemplaza #E2F3F8 (degradados del icono) */
+    --promo-light: #D0ECF4;     
 
     /* Tipografía y Textos */
     --text-dark: #122133;       
-    --text-dark-rgb: 18, 33, 51;/* Para fondos oscuros translúcidos (modales) */
-    --text-muted: #7E93A8;      
+    --text-dark-rgb: 18, 33, 51;
+    --text-muted: rgba(var(--text-dark-rgb), 0.6); /* El texto secundario se aclara solo según el color principal */
 
-    /* Bordes, Estados y Alertas */
-    --border-color: #E2E8F0;
+    /* Alertas */
     --danger: #ef4444;
-    --danger-light: #fee2e2;    /* Reemplaza #fee2e2 */
+    --danger-light: rgba(239, 68, 68, 0.1);
     --success: #10b981;
 
     --font-main: 'Outfit', sans-serif;
@@ -588,7 +590,7 @@ body.modo-admin .price {
 }
 
 .fab-visibility {
-    background-color: var(--bg-light);
+    background: color-mix(in srgb, var(--bg-card) 50%, transparent);
     color: var(--primary);
     transition: transform 0.2s ease;
     display: flex;
@@ -663,7 +665,15 @@ body.modo-admin .price {
     position: absolute;
     top: 18px;
     right: 20px;
-    background: var(--bg-light);
+    /* Usamos color-mix para darle 50% de transparencia exacta al HEX de la tarjeta */
+    .close-btn {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    /* Usamos color-mix para darle 50% de transparencia exacta al HEX de la tarjeta */
+    background: color-mix(in srgb, var(--bg-card) 50%, transparent);
+    backdrop-filter: blur(4px); /* Agregamos un ligero efecto cristal muy elegante */
+    -webkit-backdrop-filter: blur(4px);
     border: 1px solid var(--primary);
     border-radius: 50%;
     width: 36px;
@@ -678,7 +688,26 @@ body.modo-admin .price {
 }
 
 .close-btn:hover {
-    background: var(--border-color);
+    background: var(--bg-card); /* Al pasar el dedo o mouse, se vuelve 100% sólido */
+    transform: scale(1.05);
+}
+    backdrop-filter: blur(4px); /* Agregamos un ligero efecto cristal muy elegante */
+    -webkit-backdrop-filter: blur(4px);
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: var(--bg-card); /* Al pasar el dedo o mouse, se vuelve 100% sólido */
     transform: scale(1.05);
 }
 
@@ -720,7 +749,7 @@ body.modo-admin .price {
     background-color: var(--bg-hover);
     border-radius: 18px;
     margin-bottom: 20px;
-    border: 2px solid var(--text-muted);
+    border: 2px solid var(--primary);
 }
 
 .detail-title {
@@ -802,7 +831,7 @@ body.modo-admin .price {
 
 .ticket-name {
     font-weight: 700;
-    font-size: 14px;
+    font-size: 16px;
     margin-bottom: 4px;
     color: var(--primary);
     white-space: pre-line; /* <--- Agrega esto */
@@ -1142,7 +1171,7 @@ footer {
 .qr-desc { color: var(--text-muted); font-size: 14px; margin-top: 5px; font-weight: 600; }
 
 /* Tarjeta Promo y Footer */
-.badge-promo { position: static; background: var(--promo-color); width: 95%; letter-spacing: 1px; }
+.badge-promo { position: static; background: var(--promo-color); letter-spacing: 1px; }
 .promo-subtitle { font-size: 16px; color: var(--primary); font-weight: 700; margin: 16px 0; }
 .promo-footer { margin-top: auto; padding-top: 20px; border-top: 1px dashed var(--border-color); text-align: center; }
 .promo-footer-text { font-size: 16px; color: var(--promo-color); font-weight: 400; margin-bottom: 12px; line-height: 1.2; }
@@ -1215,7 +1244,7 @@ footer {
 .ticket-stepper {
     display: flex;
     width: 25%;
-    height: 30px;
+    /*height: 30px;*/
     background: var(--primary);
     border-radius: 50px;
     align-items: center;

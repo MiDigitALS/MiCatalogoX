@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>MiCatálogoX</title>
+
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/styles.css">
+
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#2B2D42">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body class="modo-cliente">
+
+    <header>
+        <div class="brand-header">
+            <div class="brand-info" style="display: flex; align-items: center; gap: 12px;">
+                <!-- Imagen del logo (Oculta por defecto hasta que cargue) -->
+                <img id="headerLogo" src="" alt="Logo" style="display: none; height: 42px; width: 42px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-color);">
+
+                <div style="flex: 1; min-width: 0;">
+                    <h1 id="headerTitle">MiCatálogoX</h1>
+                    <p id="headerSubtitle">Cargando...</p>
+                </div>
+            </div>
+
+            <div class="top-controls">
+                <button class="btn-header-icon" onclick="openShareModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                </button>
+            </div>
+        </div> 
+
+        <div class="nav-row" id="navNormal">
+            <button class="search-trigger-btn" onclick="toggleSearch(true)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+            <div class="categories" id="categoryContainer"></div>
+        </div>
+
+        <div class="search-row" id="navSearch">
+            <div class="search-input-wrapper">
+                <span class="search-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg></span>
+                <input type="text" id="searchInput" placeholder="Buscar..." oninput="handleSearch()">
+                <span class="clear-icon" id="clearBtn" onclick="clearSearch()">✕</span>
+            </div>
+            <button class="cancel-btn" onclick="toggleSearch(false)">Cerrar</button>
+        </div>
+    </header>
+
+    <div class="product-grid" id="productGrid">
+        <div class="empty-state">Cargando catálogo...</div>
+    </div>
+
+    <!-- ELEMENTOS DEL CLIENTE (CARRITO) -->
+    <div class="checkout-bar ocultar-en-admin" id="checkoutBar">
+        <button class="btn-checkout" onclick="openCartModal()">
+            <span class="checkout-qty" id="cartCount">0x</span>
+            <span>TOTAL</span>
+            <span id="cartTotal">0,00</span>
+        </button>
+    </div>
+
+    <!-- BOTONES FLOTANTES EXCLUSIVOS ADMIN -->
+    <div class="fab-container ocultar-en-cliente">
+        <!-- Botón secreto Master para ver Estadísticas Consolidadas -->
+        <button id="btnMasterStats" class="fab fab-visibility" style="display: none; background: var(--promo-color); color: white;" onclick="openMasterDashboard()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </button>
+        <button id="btnSettings" class="fab fab-visibility" onclick="openCategoryManager()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button class="fab fab-add" onclick="openFormModal(null)">+</button>
+    </div>
+
+    <!-- MODALES DE DETALLE Y CARRITO -->
+    <div class="modal-overlay ocultar-en-admin" id="detailModal">
+        <div class="modal-content modal-border-primary">
+            <button class="close-btn" onclick="closeDetailModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="detail-scroll-area">
+                <img id="detailImg" class="detail-img" src="">
+                <h2 id="detailTitle" class="detail-title">Modelo</h2>
+                <div class="detail-price" id="detailPrice">0,00</div>
+                <p id="detailDesc" class="detail-desc"></p>
+            </div>
+            <div id="detailActionContainer" class="action-container"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay ocultar-en-admin" id="cartModal">
+        <div class="modal-content modal-border-accent">
+            <button class="close-btn" onclick="closeCartModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="modal-header-top">
+                <h2>Presupuesto</h2>
+                <button class="btn-empty-cart" onclick="document.getElementById('confirmResetModal').classList.add('show')">Limpiar</button>
+            </div>
+            <div class="customer-form-top">
+                <input type="text" id="customerName" placeholder="Tu nombre y apellido..." autocomplete="off">
+                <div id="nameError" class="error-msg">⚠ Por favor, ingresa tus datos.</div>
+            </div>
+            <div class="ticket-list" id="ticketList"></div>
+            <div class="ticket-total">
+                <span>ESTIMADO</span>
+                <span id="ticketTotalAmount">0,00</span>
+            </div>
+            <button class="btn-whatsapp" onclick="sendWhatsAppClient()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" /></svg>
+                Enviar y presupuestar
+            </button>
+        </div>
+    </div>
+
+    <!-- FORMULARIO ADMIN Y MODAL COMPARTIR -->
+    <div class="modal-overlay ocultar-en-cliente" id="formModal">
+        <div class="modal-content modal-border-primary">
+            <button class="close-btn" onclick="closeFormModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="form-scroll">
+                <form id="productForm">
+                    <input type="hidden" id="editId">
+                    <input type="hidden" id="oldImgUrl">
+
+                    <div class="file-upload-wrapper">
+                        <img id="previewImg" src="" title="Tocar para cambiar">
+                        <div id="uploadText" class="upload-btns-container">
+                            <label for="prodImgGal" class="btn-upload-action gal upload-label">🖼️<br>GALERÍA</label>
+                        </div>
+                        <input type="file" id="prodImgCam" accept="image/*" capture="environment" class="hidden-input">
+                        <input type="file" id="prodImgGal" accept="image/*" class="hidden-input">
+                    </div>
+
+                    <div class="admin-input-group">
+                        <label>Nombre del producto</label>
+                        <textarea id="prodName" class="admin-field textarea-auto" rows="1" placeholder="Nombre del producto..." required></textarea>
+                    </div>
+
+                    <div class="admin-row">
+                        <div class="admin-input-group">
+                            <label>Precio</label>
+                            <input type="text" id="prodPrice" class="admin-field" placeholder="0,00" oninput="handlePriceInput(event)" required>
+                        </div>
+                        <div class="admin-input-group">
+                            <label>Categoría</label>
+                            <select id="prodCat" class="admin-field select-compact"></select>
+                        </div>
+                    </div>
+
+                    <div class="admin-input-group">
+                        <label>Descripción</label>
+                        <textarea id="prodDesc" class="admin-field textarea-auto" rows="2" placeholder="Detalles del producto..." required></textarea>
+                    </div>
+
+                    <div class="check-group check-group-accent">
+                        <label class="check-group-label">VISIBLE EN CATÁLOGO</label>
+                        <label class="switch"><input type="checkbox" id="prodActivo" checked><span class="slider"></span></label>
+                    </div>
+
+                    <!-- Botones integrados al final del formulario -->
+                    <div class="form-btn-row" style="margin-top: 30px; padding-bottom: 0; margin-bottom: 0;">
+                        <button type="button" id="btnEliminar" class="btn-delete flex-1" onclick="document.getElementById('deleteModal').classList.add('show')">Borrar</button>
+                        <button type="submit" id="btnGuardar" class="btn-submit flex-1">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shareModal">
+        <div class="modal-content modal-border-success">
+            <button class="close-btn" onclick="document.getElementById('shareModal').classList.remove('show')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="titulo-panel">Comparte el Catálogo</h2>
+            <div class="qr-container">
+                <img id="qrCode" src="">
+                <p class="qr-desc">Muestra este QR para escanear</p>
+            </div>
+            <div>
+                <input type="tel" id="shareWaNumber" class="wa-input" placeholder="Ej: 04121234567 (Opcional)" maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                <button class="btn-whatsapp" onclick="shareWhatsApp()"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" /></svg>Enviar Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Confirmación y Alertas -->
+    <div class="modal-overlay centered-modal" id="alertModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 id="alertTitle" class="alert-title">Atención</h3>
+            <p id="alertMessage" class="alert-msg">Mensaje</p>
+            <div class="confirm-actions">
+                <button class="btn-submit flex-1" onclick="document.getElementById('alertModal').classList.remove('show')">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay centered-modal" id="confirmResetModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title">¿Reiniciar Lista?</h3>
+            <p class="alert-msg">Se borrarán los modelos seleccionados.</p>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('confirmResetModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-submit btn-danger-bg" onclick="executeResetCart()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay centered-modal" id="deleteModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title danger">¿Eliminar Producto?</h3>
+            <p class="alert-msg">Se borrará permanentemente.</p>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-submit btn-danger-bg" id="btnConfirmDelete" onclick="executeDelete()">Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmación Suspender/Activar Tienda -->
+    <div class="modal-overlay centered-modal ocultar-en-cliente" id="confirmSuspendModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title danger" id="suspendTitle">¿Suspender Tienda?</h3>
+            <p class="alert-msg" id="suspendMsg">La tienda se ocultará del catálogo.</p>
+            <input type="hidden" id="suspendTargetShop">
+            <input type="hidden" id="suspendNewStatus">
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('confirmSuspendModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-submit btn-danger-bg" id="btnConfirmSuspend" onclick="executeToggleShopStatus()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Pedido Multi-Tienda (Megacatálogo) -->
+    <div class="modal-overlay centered-modal ocultar-en-admin" id="multiVendorModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title text-primary" style="margin-bottom: 5px;">Pedido Dividido</h3>
+            <p class="alert-msg" style="font-size: 13px;">Has seleccionado productos de diferentes tiendas. Envía el pedido correspondiente a cada emprendedor:</p>
+            
+            <div id="multiVendorList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <!-- Aquí se generan los botones de WhatsApp automáticamente -->
+            </div>
+            
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('multiVendorModal').classList.remove('show')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="promoModal">
+        <div class="modal-content modal-border-promo">
+            <div class="brand-header">
+                <div class="badge-hidden badge-promo"><span class="font-bold">Mi</span>Digit<span class="font-bold">ALS</span></div>
+                <button class="close-btn" onclick="document.getElementById('promoModal').classList.remove('show')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="detail-scroll-area">
+                <h2 class="promo-title" id="dinPromoTitle">Cargando...</h2>
+                <p class="promo-subtitle" id="dinPromoSubtitle"></p>
+                <p class="detail-desc text-pre-wrap" id="dinPromoDesc"></p>
+            </div>
+            <div class="promo-footer">
+                <p class="promo-footer-text">- ¡Pide tu catálogo digital YA! -</p>
+                <button class="btn-submit btn-promo" id="dinPromoBtn" onclick="ejecutarPromoAccion()">Cargando...</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === GESTOR DE CATEGORÍAS Y AJUSTES === -->
+    <div class="modal-overlay ocultar-en-cliente" id="categoryManagerModal">
+        <div class="modal-content modal-border-primary modal-90vh">
+            <button class="close-btn" onclick="document.getElementById('categoryManagerModal').classList.remove('show')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="titulo-panel">Ajustes del Catálogo</h2>
+            <div class="scroll-container">
+
+                <label class="section-label">Vista del catálogo</label>
+                <div class="section-group">
+                    <button class="btn-submit btn-action-sm btn-accent" onclick="document.getElementById('categoryManagerModal').classList.remove('show'); toggleClientAdminView();">Ver como Cliente</button>
+                </div>
+
+                <label class="section-label">Visibilidad en tu panel</label>
+                <div class="section-group">
+                    <select id="visibilityInput" class="wa-input wa-select input-action-sm" onchange="changeAdminVisibilityFilter(this.value)">
+                        <option value="0">Mostrar AMBOS (Visibles y Ocultos)</option>
+                        <option value="1">Mostrar solo VISIBLES</option>
+                        <option value="2">Mostrar solo OCULTOS</option>
+                    </select>
+                </div>
+
+                <label class="section-label">Moneda global</label>
+                <div class="section-group cols-2">
+                    <select id="currencyInput" class="wa-input wa-select input-action-sm">
+                        <option value="$">Dólares ($)</option>
+                        <option value="Bs.">Bolívares (Bs.)</option>
+                    </select>
+                    <button id="btnSaveCurrency" class="btn-submit btn-action-sm" onclick="saveCurrency()">Guardar</button>
+                </div>
+
+                <label class="section-label">Gestionar Categorías</label>
+                <div class="add-cat-row">
+                    <input type="text" id="newCatName" class="wa-input add-cat-input" placeholder="Nueva categoría...">
+                    <button class="btn-add btn-add-cat" onclick="addCategory()">+</button>
+                </div>
+                <div id="categoryManagerList" class="cat-list"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay centered-modal ocultar-en-cliente" id="editCategoryModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title">Editar Categoría</h3>
+            <div class="admin-input-group admin-info-box">
+                <label>Nombre Actual: <span id="labelOldCat" class="text-primary text-normal"></span></label>
+                <input type="text" id="editCatInput" class="admin-field" placeholder="Escribe el nuevo nombre...">
+                <input type="hidden" id="oldCatNameHolder">
+            </div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('editCategoryModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-submit" onclick="executeEditCategory()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay centered-modal ocultar-en-cliente" id="confirmDeleteCategoryModal">
+        <div class="modal-content confirm-box modal-auto">
+            <h3 class="alert-title danger">¿Eliminar Categoría?</h3>
+            <p class="alert-msg">La categoría <span id="labelDelCat" class="font-bold text-primary"></span> se borrará permanentemente.</p>
+            <input type="hidden" id="delCatNameHolder">
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('confirmDeleteCategoryModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-submit btn-danger-bg" onclick="executeDeleteCategory()">Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="previewBadge" class="preview-badge" onclick="toggleClientAdminView()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+
+    <!-- === MODAL DASHBOARD MASTER (ESTADÍSTICAS GLOBALES Y VISTA CLIENTE) === -->
+    <div class="modal-overlay ocultar-en-cliente" id="masterDashboardModal">
+        <div class="modal-content modal-border-promo modal-90vh">
+            <button class="close-btn" onclick="document.getElementById('masterDashboardModal').classList.remove('show')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="titulo-panel">Panel de Control Master</h2>
+            <div class="scroll-container">
+                
+                <!-- NUEVO: Botón para cambiar a Vista Cliente desde el Master -->
+                <label class="section-label">Vista del Megacatálogo</label>
+                <div class="section-group" style="margin-bottom: 20px;">
+                    <button class="btn-submit btn-action-sm btn-accent" onclick="document.getElementById('masterDashboardModal').classList.remove('show'); toggleClientAdminView();">Ver como Cliente</button>
+                </div>
+
+                <!-- Tarjetas de Totales -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div style="background: var(--bg-hover); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tiendas Activas</span>
+                        <div id="masterTotalShops" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 4px;">0</div>
+                    </div>
+                    <div style="background: var(--bg-hover); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Productos Totales</span>
+                        <div id="masterTotalProducts" style="font-size: 24px; font-weight: 800; color: var(--accent); margin-top: 4px;">0</div>
+                    </div>
+                </div>
+
+                <label class="section-label">Rendimiento y Control de Emprendedores</label>
+                <div id="masterStatsTableContainer" style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
+                    <!-- Los renglones de tiendas se generarán dinámicamente con JS aquí -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Personalizado para Instalar PWA -->
+    <div class="modal-overlay centered-modal" id="installModal" style="z-index: 400;">
+        <div class="modal-content confirm-box modal-auto">
+            <div class="empty-icon small">📲</div>
+            <h3 class="alert-title">¡Lleva el Catálogo contigo!</h3>
+            <p class="alert-msg">Instala nuestra App en tu pantalla de inicio para acceder al instante, comprar más rápido y no perder nuestro enlace.</p>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('installModal').classList.remove('show')">Quizás después</button>
+                <button class="btn-submit" id="btnInstallConfirm">Instalar App</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>Catálogo Web creado por <span onclick="document.getElementById('promoModal').classList.add('show')" class="footer-link"><span class="font-bold">Mi</span>Digit<span class="font-bold text-promo">ALS</span></span> | © 2026</footer>
+
+    <!-- === LÓGICA MAESTRA === -->
+    <script src="../assets/js/main.js?v=1.10"></script>
+</body>
+
+</html>

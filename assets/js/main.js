@@ -7,13 +7,11 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// === LÓGICA MAESTRA ===
+// === LÓGICA MAESTRA UNIFICADA ===
 
-// 1. TUS CREDENCIALES
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx27ehEycCOiHqyYOmPHNYQ7w_ZYluYA8wkdI2G_4PuzHqciyXYuftYqCUmuncpYaeRcQ/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Hace que cualquier textarea con la clase textarea-auto ajuste su altura
     const autoResizeTextareas = document.querySelectorAll('.textarea-auto');
     autoResizeTextareas.forEach(tx => {
         tx.addEventListener('input', function() {
@@ -23,24 +21,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// 2. MULTI-EMPRENDEDOR AISLADO: Crear una memoria única basada en la carpeta
 const currentFolder = window.location.pathname.split('/').filter(Boolean)[0] || 'root';
 const storageKey = 'tienda_guardada_' + currentFolder;
 
 const _urlParams = new URLSearchParams(window.location.search);
 let SHOP_ID = _urlParams.get('shop');
+const MODO = _urlParams.get('modo');
 
-if (SHOP_ID) {
+if (MODO === 'master') {
+    localStorage.setItem(storageKey + '_modo', 'master');
+    localStorage.removeItem(storageKey); 
+    SHOP_ID = null;
+} else if (SHOP_ID) {
     localStorage.setItem(storageKey, SHOP_ID);
+    localStorage.removeItem(storageKey + '_modo'); 
 } else {
     SHOP_ID = localStorage.getItem(storageKey);
 }
 
-window.LINK_CLIENTES = window.location.href.split('?')[0] + (SHOP_ID ? `?shop=${SHOP_ID}` : '');
+const IS_MASTER = (localStorage.getItem(storageKey + '_modo') === 'master' || MODO === 'master');
+
+window.LINK_CLIENTES = window.location.href.split('?')[0] + (SHOP_ID && !IS_MASTER ? `?shop=${SHOP_ID}` : (IS_MASTER ? '?modo=master' : ''));
 
 let WHATSAPP_EMPRENDEDOR = "";
 let MONEDA = "$";
-let SUBTITULO_TIENDA = "Mi Catálogo Digital"; // Nueva variable global para recordar el subtítulo real
+let SUBTITULO_TIENDA = "Mi Catálogo Digital"; 
 
 let PROMO_ACTIVO = false;
 let PROMO_CARD_TITULO = "";
@@ -55,35 +60,34 @@ let PROMO_LINK = "";
 let TEXTO_PLACEHOLDER = "Tu nombre y apellido...";
 let TEXTO_MENSAJE = "Hola, mi nombre es *{nombre}*.\nMe interesa el siguiente pedido:\n\n";
 
-// 3. DETECCIÓN DE MODO
+let TIENDAS_DB = [];
+let TODAS_LAS_TIENDAS = []; // Nueva base de datos que incluye a los suspendidos
+let MASTER_STATS = {};
+
 const IS_ADMIN = window.location.href.includes('admin=true');
 if (IS_ADMIN) {
     document.body.classList.remove('modo-cliente');
     document.body.classList.add('modo-admin');
-    document.getElementById('headerSubtitle').innerText = "PANEL DE ADMINISTRACIÓN";
+    document.getElementById('headerSubtitle').innerText = IS_MASTER ? "PANEL DE CONTROL MASTER" : "PANEL DE ADMINISTRACIÓN";
 
     const btnToggle = document.getElementById('btnToggleMode');
     if (btnToggle) btnToggle.style.display = "flex";
 }
 
-// 4. VARIABLES GLOBALES Y UTILIDADES
 let products = [], categories = [];
 let currentCategory = 'todas', currentDetailId = null, visibilityState = 0;
 
 function formatPrice(num) { return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-// Función para convertir color HEX a RGB para las sombras CSS
 function hexToRgb(hex) {
     let c;
     if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
         c = hex.substring(1).split('');
-        if (c.length == 3) {
-            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
-        }
+        if (c.length == 3) { c = [c[0], c[0], c[1], c[1], c[2], c[2]]; }
         c = '0x' + c.join('');
         return [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(', ');
     }
-    return "31, 58, 90"; // Color primario por defecto en caso de error
+    return "31, 58, 90"; 
 }
 
 let deferredPrompt;
@@ -103,12 +107,11 @@ function openWhatsApp(phone, message) {
 
 async function loadProducts() {
     try {
-        const url = SHOP_ID ? `${SCRIPT_URL}?shop=${SHOP_ID}` : SCRIPT_URL;
+        const url = (SHOP_ID && !IS_MASTER) ? `${SCRIPT_URL}?shop=${SHOP_ID}` : SCRIPT_URL;
         const response = await fetch(url);
         const data = await response.json();
 
-        // Si el catálogo está desactivado en Sheets, mostramos la pantalla de mantenimiento
-        if (data.status === "inactive") {
+        if (!IS_MASTER && data.status === "inactive") {
             document.body.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background-color: #F4F7F9; font-family: 'Outfit', sans-serif; color: #122133;">
                     <div style="font-size: 64px; margin-bottom: 20px;">🚧</div>
@@ -121,59 +124,40 @@ async function loadProducts() {
         }
 
         MONEDA = data.moneda || "$";
-        WHATSAPP_EMPRENDEDOR = data.whatsapp ? data.whatsapp.toString().replace(/[^0-9]/g, '') : "";
-        
-        // --- 1. PERSONALIZACIÓN DE MARCA Y TEXTOS ---
         const mainTitle = data.nombre_tienda || "MiCatálogoX";
-        SUBTITULO_TIENDA = data.subtitulo_tienda || "Mi Catálogo Digi"; // Guardamos el subtítulo real aquí
+        SUBTITULO_TIENDA = data.subtitulo_tienda || "Mi Catálogo Digital"; 
 
         const titleEl = document.getElementById('headerTitle');
         const subtitleEl = document.getElementById('headerSubtitle');
 
-        // Inyectamos el título como HTML para permitir etiquetas (<span>, <br>, etc.) desde GSheets
-        if (titleEl) {
-            titleEl.innerHTML = mainTitle;
-        }
+        if (titleEl) { titleEl.innerHTML = mainTitle; }
 
-        // Para el título de la pestaña del navegador, le quitamos las etiquetas HTML para que se vea limpio
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = mainTitle;
         document.title = tempDiv.textContent || tempDiv.innerText || "Catálogo";
 
-        if (!IS_ADMIN && subtitleEl) {
-            subtitleEl.innerText = SUBTITULO_TIENDA;
-        }
+        if (!IS_ADMIN && subtitleEl) { subtitleEl.innerText = SUBTITULO_TIENDA; }
 
-        // Logo
         const logoEl = document.getElementById('headerLogo');
-        if (logoEl) {
-            if (data.logo_url && data.logo_url.trim() !== "") {
-                logoEl.src = data.logo_url;
-                logoEl.style.display = "block";
-            } else {
-                logoEl.style.display = "none";
-            }
+        if (logoEl && !IS_MASTER) {
+            logoEl.src = "./icons/icon-192x192.png?v=" + new Date().getTime(); 
+            logoEl.style.display = "block";
+            logoEl.onerror = () => { logoEl.style.display = "none"; };
+        } else if (logoEl) {
+            logoEl.style.display = "none"; 
         }
 
-        // Variables de Color (Inyectadas en CSS :root)
         const root = document.documentElement;
-        if (data.color_primario) {
-            root.style.setProperty('--primary', data.color_primario);
-            root.style.setProperty('--primary-rgb', hexToRgb(data.color_primario));
-        }
-        if (data.color_acento) {
-            root.style.setProperty('--accent', data.color_acento);
-            root.style.setProperty('--accent-rgb', hexToRgb(data.color_acento));
-        }
-        if (data.color_fondo) {
-            root.style.setProperty('--bg-body', data.color_fondo);
-        }
-        // ---------------------------------------------
+        if (data.color_primario) { root.style.setProperty('--primary', data.color_primario); root.style.setProperty('--primary-rgb', hexToRgb(data.color_primario)); }
+        if (data.color_acento) { root.style.setProperty('--accent', data.color_acento); root.style.setProperty('--accent-rgb', hexToRgb(data.color_acento)); }
+        if (data.color_fondo) { root.style.setProperty('--bg-body', data.color_fondo); }
+        if (data.color_texto) { root.style.setProperty('--text-dark', data.color_texto); root.style.setProperty('--text-dark-rgb', hexToRgb(data.color_texto)); }
+        if (data.color_carta) { root.style.setProperty('--bg-card', data.color_carta); root.style.setProperty('--bg-panel', `rgba(${hexToRgb(data.color_carta)}, 0.95)`); }
+
+        if (!IS_MASTER) { WHATSAPP_EMPRENDEDOR = data.whatsapp ? data.whatsapp.toString().replace(/[^0-9]/g, '') : ""; }
 
         const placeholderSheet = data.placeholder || data.texto_placeholder || data.Placeholder;
-        TEXTO_PLACEHOLDER = (placeholderSheet && placeholderSheet.toString().trim() !== "")
-            ? placeholderSheet.toString().trim()
-            : "Tu nombre y apellido...";
+        TEXTO_PLACEHOLDER = (placeholderSheet && placeholderSheet.toString().trim() !== "") ? placeholderSheet.toString().trim() : "Tu nombre y apellido...";
 
         const rawMensaje = data.mensaje || "Hola, mi nombre es *{nombre}*.\nMe interesa el siguiente pedido:\n\n";
         TEXTO_MENSAJE = rawMensaje.replace(/\\n/g, '\n');
@@ -193,33 +177,45 @@ async function loadProducts() {
             document.getElementById('dinPromoSubtitle').innerText = PROMO_MODAL_SUBTITULO;
             document.getElementById('dinPromoDesc').innerText = PROMO_MODAL_DESC;
             document.getElementById('dinPromoBtn').innerHTML = PROMO_BOTON;
-        } else {
-            PROMO_ACTIVO = false;
-        }
+        } else { PROMO_ACTIVO = false; }
 
         const nameInput = document.getElementById('customerName');
-        if (nameInput) {
-            nameInput.placeholder = TEXTO_PLACEHOLDER;
-            nameInput.setAttribute("placeholder", TEXTO_PLACEHOLDER);
+        if (nameInput) { nameInput.placeholder = TEXTO_PLACEHOLDER; nameInput.setAttribute("placeholder", TEXTO_PLACEHOLDER); }
+
+        if (IS_MASTER) {
+            TIENDAS_DB = data.emprendedores || [];
+            TODAS_LAS_TIENDAS = data.todas_las_tiendas || [];
+            MASTER_STATS = data.stats || {};
+            categories = TIENDAS_DB; 
+
+            const btnMasterStats = document.getElementById('btnMasterStats');
+            if (IS_ADMIN && btnMasterStats) { btnMasterStats.style.display = "flex"; }
+            
+            const btnSettings = document.getElementById('btnSettings');
+            const fabAdd = document.querySelector('.fab-add');
+            if (btnSettings) btnSettings.style.display = "none";
+            if (fabAdd) fabAdd.style.display = "none";
+        } else {
+            categories = data.categorias;
         }
 
-        categories = data.categorias;
         products = data.productos.map(item => ({
-            id: item.id, name: item.nombre, cat: item.categoria ? item.categoria.toLowerCase() : '',
-            price: parseFloat(item.precio) || 0, desc: item.descripcion, img: item.imagen,
-            available: (item.activo === "SÍ" || item.activo === "SI" || item.activo === true), qty: 0
+            id: item.id, 
+            name: item.nombre, 
+            cat: IS_MASTER ? (item.emprendedor ? item.emprendedor.toLowerCase() : '') : (item.categoria ? item.categoria.toLowerCase() : ''),
+            price: parseFloat(item.precio) || 0, 
+            desc: item.descripcion, 
+            img: item.imagen,
+            available: (item.activo === "SÍ" || item.activo === "SI" || item.activo === true), 
+            qty: 0,
+            emprendedor: item.emprendedor ? item.emprendedor.toLowerCase() : "" 
         }));
 
         renderCategoriesUI();
         renderProducts();
         updateCartBar();
 
-        renderCategoriesUI();
-        renderProducts();
-        updateCartBar();
-
-        // === DISPARADOR DEL TUTORIAL DEL EMPRENDEDOR ===
-        if (IS_ADMIN && !localStorage.getItem('tutorial_admin_visto_' + currentFolder)) {
+        if (!IS_MASTER && IS_ADMIN && !localStorage.getItem('tutorial_admin_visto_' + currentFolder)) {
             mostrarTutorialAdmin();
         }
 
@@ -230,15 +226,12 @@ async function loadProducts() {
 }
 
 async function saveCurrency() {
+    if (IS_MASTER) return;
     const newVal = document.getElementById('currencyInput').value.trim() || "$";
     const btn = document.getElementById('btnSaveCurrency');
 
-    MONEDA = newVal;
-    renderProducts();
-    updateCartBar();
-
-    btn.innerText = "Guardando...";
-    btn.disabled = true;
+    MONEDA = newVal; renderProducts(); updateCartBar();
+    btn.innerText = "Guardando..."; btn.disabled = true;
 
     try {
         await fetch(SCRIPT_URL, {
@@ -247,18 +240,11 @@ async function saveCurrency() {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             redirect: "follow"
         });
-
-        btn.style.backgroundColor = 'var(--success)';
-        btn.innerText = "¡Listo!";
+        btn.style.backgroundColor = 'var(--success)'; btn.innerText = "¡Listo!";
     } catch (e) {
-        console.error("Error al guardar moneda:", e);
         btn.innerText = "Error";
     } finally {
-        setTimeout(() => {
-            btn.style.backgroundColor = 'var(--accent)';
-            btn.innerText = "Guardar";
-            btn.disabled = false;
-        }, 2000);
+        setTimeout(() => { btn.style.backgroundColor = 'var(--accent)'; btn.innerText = "Guardar"; btn.disabled = false; }, 2000);
     }
 }
 
@@ -306,10 +292,10 @@ function renderProducts() {
             grid.innerHTML = `<div class="empty-state">No hay productos.</div>`;
         } else {
             let mensajeVacio = "";
-            let mostrarPromo = true; // Por defecto mostramos la promo
+            let mostrarPromo = true; 
             if (products.filter(p => p.available).length === 0) {
                 mensajeVacio = `<div class="empty-state large"><div class="empty-icon">🛍️</div><h3 class="empty-title">Catálogo en preparación</h3><p class="empty-desc">Aún no hemos publicado nuestros productos. ¡Vuelve muy pronto!</p></div>`;
-                mostrarPromo = false; // Si no hay NINGÚN producto en la tienda, ocultamos la promo
+                mostrarPromo = false; 
             } else {
                 mensajeVacio = `<div class="empty-state large"><div class="empty-icon small">🔍</div><h3 class="empty-title">Sin resultados</h3><p class="empty-desc">No encontramos ningún modelo con esa descripción.</p></div>`;
             }
@@ -325,6 +311,9 @@ function renderProducts() {
         if (isVisualizingAsAdmin) {
             const hiddenClass = !p.available ? "hidden-prod" : "";
             const badge = !p.available ? `<div class="badge-hidden">Oculto</div>` : "";
+            // Botón dinámico: EDITAR para la tienda, MODERAR para el Master
+            const textoBotonAdmin = IS_MASTER ? "MODERAR" : "EDITAR";
+            
             grid.innerHTML += `
                 <div class="card ${hiddenClass}" onclick="openFormModal('${p.id}')">
                     ${badge}
@@ -334,7 +323,7 @@ function renderProducts() {
                     <div class="card-footer">
                         <div class="price">${MONEDA} ${formatPrice(p.price)}</div>
                         <div class="controls-wrapper">
-                            <button class="btn-add admin-edit">EDITAR</button>
+                            <button class="btn-add admin-edit">${textoBotonAdmin}</button>
                         </div>
                     </div>
                 </div>
@@ -367,10 +356,7 @@ function renderProducts() {
     if (!isVisualizingAsAdmin && filtered.length < 3 && PROMO_ACTIVO) grid.innerHTML += tarjetaPublicidad;
 }
 
-function changeAdminVisibilityFilter(val) {
-    visibilityState = parseInt(val) || 0;
-    renderProducts();
-}
+function changeAdminVisibilityFilter(val) { visibilityState = parseInt(val) || 0; renderProducts(); }
 
 function processImageToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -383,8 +369,6 @@ function processImageToBase64(file) {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, startX, startY, size, size, 0, 0, 400, 400);
-
-            // En vez de Blob, devolvemos Base64 directamente
             resolve(canvas.toDataURL('image/webp', 0.80));
         };
         img.onerror = () => reject(new Error("Formato de imagen no válido"));
@@ -423,11 +407,8 @@ function handlePriceInput(e) {
         intPart = "0";
     }
 
-    if (decPart !== null) {
-        e.target.value = intPart + ',' + decPart.substring(0, 2);
-    } else {
-        e.target.value = intPart;
-    }
+    if (decPart !== null) { e.target.value = intPart + ',' + decPart.substring(0, 2); } 
+    else { e.target.value = intPart; }
 }
 
 function getRawPrice() {
@@ -466,20 +447,17 @@ function openFormModal(id) {
         document.getElementById('prodCat').value = p.cat; document.getElementById('prodDesc').value = p.desc;
         document.getElementById('prodActivo').checked = p.available;
         previewImg.src = p.img; previewImg.style.display = 'block'; uploadText.style.display = 'none';
-        document.getElementById('btnEliminar').style.display = 'grid';
+        
+        if (!IS_MASTER) {
+            // El botón borrar solo aparece en tiendas individuales
+            document.getElementById('btnEliminar').style.display = 'grid';
+        }
         btnGuardar.innerText = "Actualizar";
 
-        if (prodDescTx) {
-        prodDescTx.style.height = "auto";
-        prodDescTx.style.height = prodDescTx.scrollHeight + "px";
-    }
-    if (prodNameTx) {
-        prodNameTx.style.height = "auto";
-        prodNameTx.style.height = prodNameTx.scrollHeight + "px";
-    }
+        if (prodDescTx) { prodDescTx.style.height = "auto"; prodDescTx.style.height = prodDescTx.scrollHeight + "px"; }
+        if (prodNameTx) { prodNameTx.style.height = "auto"; prodNameTx.style.height = prodNameTx.scrollHeight + "px"; }
     } else {
-        document.getElementById('editId').value = "";
-        document.getElementById('oldImgUrl').value = "";
+        document.getElementById('editId').value = ""; document.getElementById('oldImgUrl').value = "";
     }
     document.getElementById('formModal').classList.add('show');
 }
@@ -513,6 +491,10 @@ if (productForm) {
             }
         }
 
+        // Si es master, solo permite moderar (ocultar), pero respeta al emprendedor original
+        const pOriginal = itemId ? products.find(x => x.id.toString() === itemId.toString()) : null;
+        const targetShop = IS_MASTER && pOriginal ? pOriginal.emprendedor : SHOP_ID;
+
         const datos = {
             action: itemId ? "update" : "create", id: itemId,
             nombre: document.getElementById('prodName').value, 
@@ -520,37 +502,28 @@ if (productForm) {
             precio: getRawPrice(),
             descripcion: document.getElementById('prodDesc').value,
             imagen: finalImg, 
-            imageBase64: base64String, // Se envía a Drive
+            imageBase64: base64String, 
             activo: document.getElementById('prodActivo').checked ? "SÍ" : "NO",
-            shop: SHOP_ID
+            shop: targetShop
         };
 
         try {
             const response = await fetch(SCRIPT_URL, { 
-                method: "POST", 
-                body: JSON.stringify(datos), 
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                redirect: "follow" 
+                method: "POST", body: JSON.stringify(datos), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: "follow" 
             });
-
             const resData = await response.json();
-
-            if (resData.status === "error") {
-                showAlert("Error de Drive", resData.msg);
-            } else {
-                closeFormModal();
-                loadProducts();
-            }
+            if (resData.status === "error") { showAlert("Error de Drive", resData.msg); } 
+            else { closeFormModal(); loadProducts(); }
         } catch (error) {
             showAlert("Error de guardado", "Hubo un problema de conexión al guardar el producto.");
         } finally {
-            btn.innerText = itemId ? "Actualizar" : "Guardar Nuevo";
-            btn.disabled = false;
+            btn.innerText = itemId ? "Actualizar" : "Guardar Nuevo"; btn.disabled = false;
         }
     });
 }
 
 async function executeDelete() {
+    if (IS_MASTER) return;
     const btn = document.getElementById('btnConfirmDelete'); btn.innerText = "Borrando..."; btn.disabled = true;
     await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "delete", id: document.getElementById('editId').value, shop: SHOP_ID }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: "follow" });
     document.getElementById('deleteModal').classList.remove('show'); closeFormModal(); loadProducts(); btn.innerText = "Sí, Eliminar"; btn.disabled = false;
@@ -627,48 +600,170 @@ function renderCartModal() {
     if (cartItems.length === 0) { closeCartModal(); return; }
     cartItems.forEach(p => {
         const sub = p.qty * p.price; total += sub;
-        list.innerHTML += `<div class="ticket-item"><div class="flex-1"><div class="ticket-name">${p.name}</div><div class="ticket-unit-price">${MONEDA} ${formatPrice(p.price)} c/u</div></div><div class="ticket-stepper"><button onclick="updateQty('${p.id}', -1)">-</button><span>${p.qty}</span><button onclick="updateQty('${p.id}', 1)">+</button></div><div class="ticket-subtotal">${MONEDA} ${formatPrice(sub)}</div></div>`;
+        
+        // Convertimos el salto de línea (Enter) en un guion y espacio para que se lea fluido en el carrito
+        const nombreLimpio = p.name.replace(/\n/g, ' ');
+        
+        // Nuevo diseño: Nombre arriba, y barra de controles abajo (Precio | Cantidad | Subtotal)
+        list.innerHTML += `
+            <div class="ticket-item" style="flex-direction: column; align-items: stretch; gap: 10px; padding: 12px;">
+                <!-- Línea Superior: Nombre del Producto (white-space: normal anula el salto de línea) -->
+                <div class="ticket-name" style="margin: 0; text-align: left; width: 100%; white-space: normal;">${nombreLimpio}</div>
+                
+                <!-- Línea Inferior: Precio Unitario / Cantidad / Subtotal -->
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    
+                    <!-- Izquierda: Precio Unitario -->
+                    <div class="ticket-unit-price" style="flex: 1; text-align: left;">${MONEDA} ${formatPrice(p.price)} c/u</div>
+                    
+                    <!-- Centro: Selector de Cantidad -->
+                    <div class="ticket-stepper" style="width: 100px; flex-shrink: 0; margin: 0;">
+                        <button onclick="updateQty('${p.id}', -1)">-</button>
+                        <span>${p.qty}</span>
+                        <button onclick="updateQty('${p.id}', 1)">+</button>
+                    </div>
+                    
+                    <!-- Derecha: Subtotal -->
+                    <div class="ticket-subtotal" style="flex: 1; text-align: right; width: auto;">${MONEDA} ${formatPrice(sub)}</div>
+                    
+                </div>
+            </div>
+        `;
     });
     document.getElementById('ticketTotalAmount').innerText = `${MONEDA} ${formatPrice(total)}`;
 }
 
-function executeResetCart() { products.forEach(p => p.qty = 0); document.getElementById('customerName').value = ''; renderProducts(); updateCartBar(); document.getElementById('confirmResetModal').classList.remove('show'); closeCartModal(); }
+// === VACIAR EL CARRITO DE COMPRAS ===
+function executeResetCart() { 
+    try {
+        products.forEach(p => p.qty = 0); 
+        const inputName = document.getElementById('customerName');
+        if (inputName) inputName.value = ''; 
+        
+        renderProducts(); 
+        updateCartBar(); 
+        
+        document.getElementById('confirmResetModal').classList.remove('show'); 
+        closeCartModal(); 
+    } catch(e) {
+        console.error("Error al vaciar carrito:", e);
+    }
+}
 
+// Envío inteligente de WhatsApp según la tienda a la que pertenece el producto
+// Envío inteligente de WhatsApp según la tienda a la que pertenece el producto
 function sendWhatsAppClient() {
-    if (!WHATSAPP_EMPRENDEDOR) {
-        showAlert("Atención", "El emprendedor aún no ha configurado su número de WhatsApp.");
+    const cartItems = products.filter(p => p.qty > 0);
+    if (cartItems.length === 0) return;
+
+    const name = document.getElementById('customerName').value.trim();
+    if (!name) { 
+        document.getElementById('nameError').style.display = 'block'; 
+        document.getElementById('customerName').focus(); 
+        return; 
+    }
+
+    if (IS_MASTER) {
+        // Agrupar los productos por emprendedor
+        const itemsByVendor = {};
+        cartItems.forEach(p => {
+            if (!itemsByVendor[p.emprendedor]) itemsByVendor[p.emprendedor] = [];
+            itemsByVendor[p.emprendedor].push(p);
+        });
+
+        const vendors = Object.keys(itemsByVendor);
+
+        // Si hay más de una tienda, abrimos el Modal de Pedido Dividido
+        if (vendors.length > 1) {
+            let html = "";
+            vendors.forEach(empId => {
+                const empData = TIENDAS_DB.find(t => t.id.toLowerCase() === empId.toLowerCase());
+                const shopName = empData ? empData.nombre_tienda : empId;
+                
+                // Calcula el total rápido solo para mostrarlo en el botón
+                let subTotalTienda = 0;
+                itemsByVendor[empId].forEach(prod => { subTotalTienda += (prod.qty * prod.price); });
+                
+                html += `
+                    <button class="btn-whatsapp" onclick="sendToSingleVendor('${empId}', '${name}')" style="justify-content: space-between; padding: 12px 16px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2);">
+                        <div style="text-align: left; display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 800;">📦 ${shopName}</span>
+                            <span style="font-size: 11px; font-weight: 500; opacity: 0.9;">Total: ${MONEDA} ${formatPrice(subTotalTienda)}</span>
+                        </div>
+                        <span style="font-size: 12px;">Enviar ➔</span>
+                    </button>
+                `;
+            });
+            document.getElementById('multiVendorList').innerHTML = html;
+            document.getElementById('multiVendorModal').classList.add('show');
+            return; // Detenemos la ejecución aquí hasta que el cliente toque los botones
+        } else {
+            // Si solo es una tienda, enviamos directo
+            sendToSingleVendor(vendors[0], name);
+        }
+    } else {
+        // Modo Individual clásico
+        sendToSingleVendor(null, name, WHATSAPP_EMPRENDEDOR);
+    }
+}
+
+// Función auxiliar que arma y envía el mensaje para un emprendedor en específico
+function sendToSingleVendor(empId, customerName, fallbackWa = null) {
+    let destinatarioWa = fallbackWa;
+    let vendorItems = products.filter(p => p.qty > 0);
+
+    if (empId) {
+        vendorItems = vendorItems.filter(p => p.emprendedor === empId);
+        const empData = TIENDAS_DB.find(t => t.id.toLowerCase() === empId.toLowerCase());
+        if (empData && empData.whatsapp) {
+            destinatarioWa = empData.whatsapp.toString().replace(/[^0-9]/g, '');
+        }
+    }
+
+    if (!destinatarioWa) {
+        showAlert("Atención", "Esta marca no ha configurado un número de WhatsApp.");
         return;
     }
 
-    const name = document.getElementById('customerName').value.trim();
-    if (!name) { document.getElementById('nameError').style.display = 'block'; document.getElementById('customerName').focus(); return; }
-
-    let msg = TEXTO_MENSAJE.replace('{nombre}', name);
-    if (!msg.includes(name)) msg = msg + `\nDatos del cliente: *${name}*\n\n`;
+    let msg = TEXTO_MENSAJE.replace('{nombre}', customerName);
+    if (!msg.includes(customerName)) msg = msg + `\nDatos del cliente: *${customerName}*\n\n`;
 
     let total = 0;
-    products.filter(p => p.qty > 0).forEach(p => {
+    vendorItems.forEach(p => {
         const sub = p.qty * p.price;
         total += sub;
         msg += `✔ ${p.qty}x ${p.name} - ${MONEDA} ${formatPrice(sub)}\n`;
     });
 
     msg += `\n*TOTAL: ${MONEDA} ${formatPrice(total)}*\n\n¡Gracias!`;
-    openWhatsApp(WHATSAPP_EMPRENDEDOR, msg);
+    openWhatsApp(destinatarioWa, msg);
 }
 
 function renderCategoriesUI() {
     const container = document.getElementById('categoryContainer'), select = document.getElementById('prodCat');
+    if (!container) return;
+
     let html = `<button class="cat-btn ${currentCategory === 'todas' ? 'active' : ''}" onclick="setCategory('todas', this)">TODOS</button>`;
     let options = "";
-    categories.forEach(cat => {
-        const catId = cat.toLowerCase(); html += `<button class="cat-btn ${currentCategory === catId ? 'active' : ''}" onclick="setCategory('${catId}', this)">${cat}</button>`;
-        options += `<option value="${catId}">${cat}</option>`;
-    });
-    container.innerHTML = html; select.innerHTML = options;
+
+    if (IS_MASTER) {
+        TIENDAS_DB.forEach(tienda => {
+            const empId = tienda.id.toLowerCase();
+            html += `<button class="cat-btn ${currentCategory === empId ? 'active' : ''}" onclick="setCategory('${empId}', this)">${tienda.nombre_tienda.toUpperCase()}</button>`;
+        });
+    } else {
+        categories.forEach(cat => {
+            const catId = cat.toLowerCase(); html += `<button class="cat-btn ${currentCategory === catId ? 'active' : ''}" onclick="setCategory('${catId}', this)">${cat.toUpperCase()}</button>`;
+            options += `<option value="${catId}">${cat}</option>`;
+        });
+    }
+
+    container.innerHTML = html;
+    if (select) select.innerHTML = options;
 }
 
 function renderCategoryManagerList() {
+    if (IS_MASTER) return;
     const list = document.getElementById('categoryManagerList'); list.innerHTML = "";
     categories.forEach(cat => {
         list.innerHTML += `<div class="cat-list-item"><span class="cat-list-name">${cat}</span><div class="cat-list-actions"><button onclick="editCategory('${cat}')" class="btn-text-edit">Editar</button><button onclick="deleteCategory('${cat}')" class="btn-text-delete">Borrar</button></div></div>`;
@@ -676,6 +771,7 @@ function renderCategoryManagerList() {
 }
 
 function openCategoryManager() {
+    if (IS_MASTER) return;
     const select = document.getElementById('currencyInput');
     if (select.querySelector(`option[value="${MONEDA}"]`)) { select.value = MONEDA; } else { select.value = "$"; }
     const visSelect = document.getElementById('visibilityInput');
@@ -686,6 +782,7 @@ function openCategoryManager() {
 }
 
 async function addCategory() {
+    if (IS_MASTER) return;
     const name = document.getElementById('newCatName').value.trim(); if (!name) return;
     categories.push(name); renderCategoryManagerList(); renderCategoriesUI(); document.getElementById('newCatName').value = "";
     await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addCategory", nombre: name, shop: SHOP_ID }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: "follow" });
@@ -693,12 +790,14 @@ async function addCategory() {
 }
 
 function editCategory(oldName) {
+    if (IS_MASTER) return;
     document.getElementById('labelOldCat').innerText = oldName; document.getElementById('oldCatNameHolder').value = oldName;
     document.getElementById('editCatInput').value = oldName; document.getElementById('editCategoryModal').classList.add('show');
     setTimeout(() => document.getElementById('editCatInput').focus(), 300);
 }
 
 async function executeEditCategory() {
+    if (IS_MASTER) return;
     const oldName = document.getElementById('oldCatNameHolder').value, nuevoNombre = document.getElementById('editCatInput').value.trim();
     const btn = document.querySelector('#editCategoryModal .btn-submit');
     if (!nuevoNombre || nuevoNombre === oldName) { document.getElementById('editCategoryModal').classList.remove('show'); return; }
@@ -710,11 +809,13 @@ async function executeEditCategory() {
 }
 
 function deleteCategory(name) {
+    if (IS_MASTER) return;
     document.getElementById('labelDelCat').innerText = `"${name}"`; document.getElementById('delCatNameHolder').value = name;
     document.getElementById('confirmDeleteCategoryModal').classList.add('show');
 }
 
 async function executeDeleteCategory() {
+    if (IS_MASTER) return;
     const name = document.getElementById('delCatNameHolder').value.trim(), btn = document.querySelector('#confirmDeleteCategoryModal .btn-submit');
     btn.innerText = "Eliminando..."; btn.disabled = true;
     categories = categories.filter(c => c !== name); renderCategoryManagerList(); renderCategoriesUI(); document.getElementById('confirmDeleteCategoryModal').classList.remove('show');
@@ -730,34 +831,114 @@ function toggleClientAdminView() {
     if (body.classList.contains('modo-admin')) {
         body.classList.remove('modo-admin');
         body.classList.add('modo-cliente');
-        if (subtitle) subtitle.innerText = SUBTITULO_TIENDA; // Usar el subtítulo real de la tienda
+        if (subtitle) subtitle.innerText = SUBTITULO_TIENDA; 
         if (previewBadge) previewBadge.style.display = "flex"; 
     } else {
         body.classList.remove('modo-cliente');
         body.classList.add('modo-admin');
-        if (subtitle) subtitle.innerText = "PANEL DE ADMINISTRACIÓN";
+        if (subtitle) subtitle.innerText = IS_MASTER ? "PANEL DE CONTROL MASTER" : "PANEL DE ADMINISTRACIÓN";
         if (previewBadge) previewBadge.style.display = "none"; 
     }
     renderProducts();
     updateCartBar();
 }
 
-// Función para ejecutar la acción de la Publicidad Global
-function ejecutarPromoAccion() {
-    if (PROMO_LINK && PROMO_LINK.trim() !== "") {
-        // Abre el link configurado en Google Sheets en una nueva pestaña
-        window.open(PROMO_LINK, '_blank');
-    } else {
-        // Si por error no hay link en el GSheets, solo cierra el modal
-        document.getElementById('promoModal').classList.remove('show');
+// === GESTOR DEL DASHBOARD MASTER SECRET ===
+function openMasterDashboard() {
+    if (!IS_MASTER) return;
+    
+    document.getElementById('masterTotalShops').innerText = TIENDAS_DB.length;
+    document.getElementById('masterTotalProducts').innerText = products.length;
+
+    const tableContainer = document.getElementById('masterStatsTableContainer');
+    if (tableContainer) {
+        tableContainer.innerHTML = "";
+        
+        TODAS_LAS_TIENDAS.forEach(tienda => {
+            const shopId = tienda.id.toLowerCase();
+            const stats = MASTER_STATS[shopId] || { instalaciones: 0, visitas: 0 };
+            
+            const prodCount = products.filter(p => p.emprendedor === shopId).length;
+
+            const isActiva = tienda.activo;
+            const colorEstado = isActiva ? 'var(--success)' : 'var(--danger)';
+            const btnTexto = isActiva ? 'Suspender' : 'Activar';
+            const newStatusTarget = isActiva ? 'NO' : 'SÍ';
+
+            tableContainer.innerHTML += `
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background-color: ${colorEstado};"></div>
+                            <span style="font-weight: 700; color: var(--primary); font-size: 14px;">${tienda.nombre_tienda}</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 20px; font-weight: 700;">${prodCount} Prods</span>
+                            <button onclick="toggleShopStatus('${shopId}', '${newStatusTarget}')" style="background: ${isActiva ? 'var(--danger-light)' : 'var(--success)'}; color: ${isActiva ? 'var(--danger)' : '#fff'}; border: none; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;">${btnTexto}</button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; margin-top: 4px;">
+                        <div>
+                            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">📲 Instalas</span>
+                            <div style="font-size: 16px; font-weight: 700; color: var(--primary);">${stats.instalaciones}</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">👁️ Aperturas</span>
+                            <div style="font-size: 16px; font-weight: 700; color: var(--primary);">${stats.visitas}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    document.getElementById('masterDashboardModal').classList.add('show');
+}
+
+// === MÓDULO DE SUSPENSIÓN DE TIENDAS DESDE EL DASHBOARD ===
+function toggleShopStatus(targetShopId, newStatus) {
+    const isSuspend = (newStatus === 'NO');
+    
+    document.getElementById('suspendTitle').innerText = isSuspend ? '¿Suspender Tienda?' : '¿Activar Tienda?';
+    document.getElementById('suspendTitle').className = isSuspend ? 'alert-title danger' : 'alert-title text-primary';
+    document.getElementById('suspendMsg').innerText = `¿Estás seguro de que deseas ${isSuspend ? 'SUSPENDER' : 'ACTIVAR'} la tienda "${targetShopId}"?`;
+    
+    const btnConfirm = document.getElementById('btnConfirmSuspend');
+    btnConfirm.innerText = isSuspend ? 'Sí, Suspender' : 'Sí, Activar';
+    btnConfirm.className = 'btn-submit';
+    btnConfirm.style.backgroundColor = isSuspend ? 'var(--danger)' : 'var(--success)';
+
+    document.getElementById('suspendTargetShop').value = targetShopId;
+    document.getElementById('suspendNewStatus').value = newStatus;
+
+    document.getElementById('confirmSuspendModal').classList.add('show');
+}
+
+async function executeToggleShopStatus() {
+    const targetShopId = document.getElementById('suspendTargetShop').value;
+    const newStatus = document.getElementById('suspendNewStatus').value;
+    const btn = document.getElementById('btnConfirmSuspend');
+    
+    btn.innerText = "Procesando...";
+    btn.disabled = true;
+
+    try {
+        await fetch(SCRIPT_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ action: "toggleShopStatus", targetShop: targetShopId, newStatus: newStatus }), 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        location.reload();
+    } catch (e) {
+        showAlert("Error", "No se pudo actualizar el estado de la tienda.");
+        btn.innerText = "Confirmar";
+        btn.disabled = false;
     }
 }
 
 // === MÓDULO DE ESTADÍSTICAS SILENCIOSAS ===
-
-// Función para enviar el dato a Google Sheets sin interrumpir al usuario
 function registrarEstadistica(evento) {
-    if (!SHOP_ID) return; // Si no hay tienda, no registramos
+    if (!SHOP_ID) return; 
     const datosStats = { action: "analytics", shop: SHOP_ID, evento: evento };
     fetch(SCRIPT_URL, { 
         method: "POST", 
@@ -766,28 +947,29 @@ function registrarEstadistica(evento) {
     }).catch(e => console.log("Stats error ignorado"));
 }
 
-// 1. Rastrear Instalaciones (Cuando el usuario le da a "Instalar App")
 window.addEventListener('appinstalled', (evt) => {
     registrarEstadistica("APP INSTALADA");
 });
 
-// 2. Rastrear Uso (Detectar si entró desde la App instalada o desde el link web)
 window.addEventListener('DOMContentLoaded', () => {
-    // Retrasamos 3 segundos el registro para asegurar que la página haya cargado
     setTimeout(() => {
-        // Verifica si la pantalla se está mostrando como "Standalone" (es decir, como App nativa)
         if (window.matchMedia('(display-mode: standalone)').matches) {
             registrarEstadistica("VISITA DESDE LA APP");
-        } else {
-            // Si quieres también registrar las visitas desde el navegador web, descomenta la línea de abajo:
-            // registrarEstadistica("VISITA DESDE LA WEB");
         }
     }, 3000);
 });
 
+// === ACCIÓN DE LA PUBLICIDAD GLOBAL ===
+function ejecutarPromoAccion() {
+    if (PROMO_LINK && PROMO_LINK.trim() !== "") {
+        window.open(PROMO_LINK, '_blank');
+    } else {
+        document.getElementById('promoModal').classList.remove('show');
+    }
+}
+
 // === FUNCIÓN DE BIENVENIDA Y TUTORIAL DEL ADMINISTRADOR ===
 function mostrarTutorialAdmin() {
-    // Configura aquí tus diapositivas (puedes subir las capturas de pantalla a tu carpeta de Google Drive y pegar sus links aquí)
     const slides = [
         {
             img: "https://lh3.googleusercontent.com/d/1R_PVRSGCsx4jhgBNOqwEkBDzHKa0uR1w", 
@@ -853,7 +1035,6 @@ function mostrarTutorialAdmin() {
 
     let currentSlide = 0;
 
-    // Crear el fondo del modal (Overlay)
     const overlay = document.createElement('div');
     overlay.id = 'tutorialOverlay';
     overlay.style = `
@@ -864,7 +1045,6 @@ function mostrarTutorialAdmin() {
         font-family: 'Outfit', sans-serif; padding: 20px; box-sizing: border-box;
     `;
 
-    // Crear la caja del contenido (Card)
     const content = document.createElement('div');
     content.style = `
         background: white; width: 100%; max-width: 380px;
@@ -877,14 +1057,13 @@ function mostrarTutorialAdmin() {
     overlay.appendChild(content);
     document.body.appendChild(overlay);
 
-    // Función para renderizar cada diapositiva en pantalla
     function renderSlide() {
         const slide = slides[currentSlide];
         content.innerHTML = `
             <button id="closeTutorialBtn" style="position: absolute; top: 15px; right: 15px; background: #F1F5F9; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 14px; font-weight: bold; color: #1F3A5A; display: flex; align-items: center; justify-content: center;">✕</button>
             <img src="${slide.img}" style="width: 100%; height: auto; object-fit: contain; border-radius: 14px; margin-bottom: 20px; background: #F8FAFC; padding: 10px; box-sizing: border-box;" alt="Tutorial">
             <h3 style="font-size: 18px; font-weight: 700; color: #1F3A5A; margin-bottom: 8px;">${slide.title}</h3>
-            <p style="font-size: 13px; color: #7E93A8; line-height: 1.5; margin-bottom: 24px; min-height: 60px;">${slide.desc}</p>
+            <p style="font-size: 13px; color: #7E93A8; line-height: 1.5; margin-bottom: 24px; min-height: 60px; white-space: pre-line;">${slide.desc}</p>
             <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 15px;">
                 <span style="font-size: 11px; font-weight: 700; color: #7E93A8; text-transform: uppercase; letter-spacing: 0.5px;">Paso ${currentSlide + 1} de ${slides.length}</span>
                 <button id="nextTutorialBtn" style="background: #E98C30; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; transition: transform 0.2s;">
@@ -893,15 +1072,10 @@ function mostrarTutorialAdmin() {
             </div>
         `;
 
-        // Eventos de los botones
         document.getElementById('closeTutorialBtn').onclick = finalizarTutorial;
         document.getElementById('nextTutorialBtn').onclick = () => {
-            if (currentSlide === slides.length - 1) {
-                finalizarTutorial();
-            } else {
-                currentSlide++;
-                renderSlide();
-            }
+            if (currentSlide === slides.length - 1) { finalizarTutorial(); } 
+            else { currentSlide++; renderSlide(); }
         };
     }
 
