@@ -1,7 +1,7 @@
 {
     "name": "MiCatálogoX",
-    "short_name": "MoCatálogoX",
-    "start_url": "./index.html?shop=michaquetas",
+    "short_name": "MiCatálogoX",
+    "start_url": "./index.html?modo=master",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2B2D42",

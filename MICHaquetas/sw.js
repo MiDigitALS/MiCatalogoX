@@ -2,16 +2,16 @@
 // Service Worker — MICHaquetas
 // ==========================================
 
-const CACHE_NAME = 'michaquetas-cache-v1.14';
-const API_CACHE = 'michaquetas-api-cache-v1.14';
+const CACHE_NAME = 'michaquetas-cache-v1.15';
+const API_CACHE = 'michaquetas-api-cache-v1.15';
 
 // Recursos estáticos que se cachean en instalación (Cache First)
 const STATIC_ASSETS = [
     './',
     './index.html',
     './manifest.json',
-    './assets/css/styles.css',
-    './assets/js/main.js',
+    '../assets/css/styles.css',
+    '../assets/js/main.js',
     './icons/icono-512x512.png',
     './icons/icono-admin-512x512.png',
     // Google Fonts (CSS se cachea; las fuentes woff2 se cachean dinámicamente en fetch)

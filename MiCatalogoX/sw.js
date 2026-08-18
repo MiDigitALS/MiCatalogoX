@@ -2,8 +2,8 @@
 // Service Worker — MICHaquetas
 // ==========================================
 
-const CACHE_NAME = 'micatalogo-cache-v1.12';
-const API_CACHE = 'micatalogo-api-cache-v1.12';
+const CACHE_NAME = 'micatalogo-cache-v1.15';
+const API_CACHE = 'micatalogo-api-cache-v1.15';
 
 // Recursos estáticos que se cachean en instalación (Cache First)
 const STATIC_ASSETS = [
